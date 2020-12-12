@@ -30,17 +30,17 @@ type JSONWebKeys struct {
 	X5c []string `json:"x5c"`
 }
 
-/* Apps type */
-type App struct {
+/* Data type */
+type Data struct {
 	Id          int
 	Name        string
 	Description string
 }
 
-var apps = []App{
-	App{Id: 1, Name: "App 1", Description: "App 1 description"},
-	App{Id: 2, Name: "App 2", Description: "App 2 description"},
-	App{Id: 3, Name: "App 3", Description: "App 3 description"},
+var data = []Data{
+	Data{Id: 1, Name: "data1", Description: "Data 1"},
+	Data{Id: 2, Name: "data2", Description: "Data 2"},
+	Data{Id: 3, Name: "data3", Description: "Data 3"},
 }
 
 func main() {
@@ -74,7 +74,7 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.Handle("/apps", jwtMiddleware.Handler(AppsHandler)).Methods("GET")
+	r.Handle("/data", jwtMiddleware.Handler(DataHandler)).Methods("GET")
 
 	// For dev only - Set up CORS so React client can consume our API
 	corsWrapper := cors.New(cors.Options{
@@ -85,8 +85,8 @@ func main() {
 	http.ListenAndServe(":8080", corsWrapper.Handler(r))
 }
 
-var AppsHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	payload, _ := json.Marshal(apps)
+var DataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	payload, _ := json.Marshal(data)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(payload))
