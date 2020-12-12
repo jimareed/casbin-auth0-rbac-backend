@@ -48,8 +48,8 @@ func main() {
 	jwtMiddleware := jwtmiddleware.New(jwtmiddleware.Options{
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			// Verify 'aud' claim
-			aud := os.Getenv("RBAC_API_ID")
-			domain := os.Getenv("RBAC_DOMAIN")
+			aud := os.Getenv("DATA_API_ID")
+			domain := os.Getenv("DATA_DOMAIN")
 			checkAud := token.Claims.(jwt.MapClaims).VerifyAudience(aud, false)
 			if !checkAud {
 				return token, errors.New("Invalid audience.")
@@ -95,7 +95,7 @@ var DataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) 
 func getPemCert(token *jwt.Token) (string, error) {
 
 	cert := ""
-	domain := os.Getenv("RBAC_DOMAIN")
+	domain := os.Getenv("DATA_DOMAIN")
 	resp, err := http.Get("https://" + domain + "/.well-known/jwks.json")
 
 	if err != nil {
