@@ -20,3 +20,8 @@ Build and run
 ```
 go run .
 ```
+
+### Sources
+- https://auth0.com/blog/authentication-in-golang/
+- https://auth0.com/docs/quickstart/backend/golang/01-authorization
+- https://auth0.com/docs/users/user-search/retrieve-users-with-get-users-by-id-endpoint

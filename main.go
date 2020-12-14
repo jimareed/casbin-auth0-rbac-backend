@@ -4,8 +4,10 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
@@ -35,6 +37,13 @@ type Data struct {
 	Id          int
 	Name        string
 	Description string
+}
+
+/* user info */
+type UserInfo struct {
+	Sub   string `json:"sub"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 var data = []Data{
@@ -86,11 +95,45 @@ func main() {
 }
 
 var DataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
+	token := authHeaderParts[1]
+
+	userEmail, _ := getUserEmail(token)
+
+	fmt.Printf("user is %s\n", userEmail)
+
 	payload, _ := json.Marshal(data)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(payload))
 })
+
+func getUserEmail(token string) (string, error) {
+
+	var userInfo UserInfo
+
+	domain := os.Getenv("DATA_DOMAIN")
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", "https://"+domain+"/userinfo", nil)
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&userInfo)
+	if err != nil {
+		return "", err
+	}
+
+	return userInfo.Email, nil
+}
 
 func getPemCert(token *jwt.Token) (string, error) {
 
