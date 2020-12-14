@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/casbin/casbin/v2"
 
 	"github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
@@ -102,6 +105,18 @@ var DataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) 
 	userEmail, _ := getUserEmail(token)
 
 	fmt.Printf("user is %s\n", userEmail)
+
+	e, err := casbin.NewEnforcer("model.conf", "policy.csv")
+	if err != nil {
+		log.Fatalf("unable to create Casbin enforcer: %v", err)
+	}
+
+	result, err := e.Enforce("alice", "data1", "read")
+	if err != nil {
+		log.Fatalf("Enforce error: %v", err)
+	}
+
+	fmt.Printf("alice, data1, read: %v\n", result)
 
 	payload, _ := json.Marshal(data)
 
