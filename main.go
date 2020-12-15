@@ -103,7 +103,7 @@ var DataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) 
 
 	userEmail, _ := getUserEmail(token)
 
-	filteredData := getData(userEmail)
+	filteredData := readData(userEmail)
 
 	payload, _ := json.Marshal(filteredData)
 
@@ -111,7 +111,7 @@ var DataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) 
 	w.Write([]byte(payload))
 })
 
-func getData(userEmail string) []Data {
+func readData(userEmail string) []Data {
 
 	e, err := casbin.NewEnforcer("model.conf", "policy.csv")
 	if err != nil {
@@ -121,12 +121,12 @@ func getData(userEmail string) []Data {
 	filteredData := []Data{}
 
 	for _, d := range data {
-		result, err := e.Enforce(userEmail, d.Name, "read")
+		result, err := e.Enforce(userEmail, d.Name, "read:data")
 		if err != nil {
 			log.Fatalf("Enforce error: %v", err)
 		}
 		if !result {
-			result, err = e.Enforce(userEmail, d.Name, "write")
+			result, err = e.Enforce(userEmail, d.Name, "write:data")
 			if err != nil {
 				log.Fatalf("Enforce error: %v", err)
 			}
@@ -137,6 +137,10 @@ func getData(userEmail string) []Data {
 	}
 
 	return filteredData
+}
+
+func writeData(userEmail string, name string, description string) error {
+	return nil
 }
 
 func getUserEmail(token string) (string, error) {
