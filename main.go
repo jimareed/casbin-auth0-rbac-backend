@@ -4,7 +4,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -104,25 +103,41 @@ var DataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) 
 
 	userEmail, _ := getUserEmail(token)
 
-	fmt.Printf("user is %s\n", userEmail)
+	filteredData := getData(userEmail)
+
+	payload, _ := json.Marshal(filteredData)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(payload))
+})
+
+func getData(userEmail string) []Data {
 
 	e, err := casbin.NewEnforcer("model.conf", "policy.csv")
 	if err != nil {
 		log.Fatalf("unable to create Casbin enforcer: %v", err)
 	}
 
-	result, err := e.Enforce("alice", "data1", "read")
-	if err != nil {
-		log.Fatalf("Enforce error: %v", err)
+	filteredData := []Data{}
+
+	for _, d := range data {
+		result, err := e.Enforce(userEmail, d.Name, "read")
+		if err != nil {
+			log.Fatalf("Enforce error: %v", err)
+		}
+		if !result {
+			result, err = e.Enforce(userEmail, d.Name, "write")
+			if err != nil {
+				log.Fatalf("Enforce error: %v", err)
+			}
+		}
+		if result {
+			filteredData = append(filteredData, d)
+		}
 	}
 
-	fmt.Printf("alice, data1, read: %v\n", result)
-
-	payload, _ := json.Marshal(data)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(payload))
-})
+	return filteredData
+}
 
 func getUserEmail(token string) (string, error) {
 
