@@ -1,5 +1,5 @@
 p, alice@example.com, data1, read:data
-p, bob@example.com, data2, write:data
+p, bob@example.com, data2, read:data
 p, data_group_admin, data_group, write:data
 
 g, alice@example.com, data_group_admin

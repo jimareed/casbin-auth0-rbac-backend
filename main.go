@@ -9,8 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/casbin/casbin/v2"
-
 	"github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
@@ -34,24 +32,11 @@ type JSONWebKeys struct {
 	X5c []string `json:"x5c"`
 }
 
-/* Data type */
-type Data struct {
-	Id          int
-	Name        string
-	Description string
-}
-
 /* user info */
 type UserInfo struct {
 	Sub   string `json:"sub"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
-}
-
-var data = []Data{
-	Data{Id: 1, Name: "data1", Description: "Data 1"},
-	Data{Id: 2, Name: "data2", Description: "Data 2"},
-	Data{Id: 3, Name: "data3", Description: "Data 3"},
 }
 
 func main() {
@@ -85,18 +70,19 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.Handle("/data", jwtMiddleware.Handler(DataHandler)).Methods("GET")
+	r.Handle("/data", jwtMiddleware.Handler(GetDataHandler)).Methods("GET")
+	r.Handle("/data/{name}", jwtMiddleware.Handler(PutDataHandler)).Methods("PUT")
 
 	// For dev only - Set up CORS so React client can consume our API
 	corsWrapper := cors.New(cors.Options{
-		AllowedMethods: []string{"GET", "POST"},
+		AllowedMethods: []string{"GET", "POST", "PUT"},
 		AllowedHeaders: []string{"Content-Type", "Origin", "Accept", "*"},
 	})
 
 	http.ListenAndServe(":8080", corsWrapper.Handler(r))
 }
 
-var DataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+var GetDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 	authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
 	token := authHeaderParts[1]
@@ -111,37 +97,24 @@ var DataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) 
 	w.Write([]byte(payload))
 })
 
-func readData(userEmail string) []Data {
+var PutDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	name := vars["name"]
 
-	e, err := casbin.NewEnforcer("model.conf", "policy.csv")
-	if err != nil {
-		log.Fatalf("unable to create Casbin enforcer: %v", err)
-	}
+	authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
+	token := authHeaderParts[1]
 
-	filteredData := []Data{}
+	log.Printf("put name=%s", name)
 
-	for _, d := range data {
-		result, err := e.Enforce(userEmail, d.Name, "read:data")
-		if err != nil {
-			log.Fatalf("Enforce error: %v", err)
-		}
-		if !result {
-			result, err = e.Enforce(userEmail, d.Name, "write:data")
-			if err != nil {
-				log.Fatalf("Enforce error: %v", err)
-			}
-		}
-		if result {
-			filteredData = append(filteredData, d)
-		}
-	}
+	userEmail, _ := getUserEmail(token)
 
-	return filteredData
-}
+	filteredData := readData(userEmail)
 
-func writeData(userEmail string, name string, description string) error {
-	return nil
-}
+	payload, _ := json.Marshal(filteredData)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(payload))
+})
 
 func getUserEmail(token string) (string, error) {
 
