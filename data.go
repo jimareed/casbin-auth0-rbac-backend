@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/casbin/casbin/v2"
@@ -14,6 +15,8 @@ type Data struct {
 	Description string
 	Permissions string
 }
+
+var nextId = 4
 
 var data = []Data{
 	Data{Id: 1, Name: "data1", Description: "Data 1", Permissions: ""},
@@ -58,6 +61,32 @@ func readData(userEmail string) []Data {
 	}
 
 	return filteredData
+}
+
+func newData(userId string) error {
+
+	newData := Data{}
+
+	newData.Id = nextId
+	newData.Name = fmt.Sprintf("data%d", newData.Id)
+	newData.Description = fmt.Sprintf("Data %d", newData.Id)
+
+	e, err := casbin.NewEnforcer("model.conf", "policy.csv")
+	if err != nil {
+		log.Fatalf("unable to create Casbin enforcer: %v", err)
+		return err
+	}
+
+	_, err = e.AddPolicy(userId, newData.Name, "write")
+	if err != nil {
+		log.Fatalf("error adding policy: %v", err)
+		return err
+	}
+
+	data = append(data, newData)
+	nextId++
+
+	return nil
 }
 
 func updateData(userEmail string, name string, description string) error {

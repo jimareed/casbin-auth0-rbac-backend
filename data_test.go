@@ -21,6 +21,28 @@ func TestReadData(t *testing.T) {
 	}
 }
 
+func TestNewData(t *testing.T) {
+
+	t.Log("Alice:")
+
+	err := newData("alice@example.com")
+
+	if err == nil {
+		t.Log("Should be able to create a new data item.", checkMark)
+	} else {
+		t.Fatal("Should be able to create a new data item.", xMark)
+	}
+
+	data := readData("alice@example.com")
+
+	if len(data) == 3 {
+		t.Log("Should have access to three data items.", checkMark)
+	} else {
+		t.Fatal("Should have access to three data items.", xMark)
+	}
+
+}
+
 func TestUpdateData(t *testing.T) {
 
 	t.Log("Alice:")
