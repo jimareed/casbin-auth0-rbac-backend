@@ -12,6 +12,7 @@ import (
 	"github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
+	"github.com/jimareed/casbin-auth0-rbac-backend/data"
 	"github.com/rs/cors"
 )
 
@@ -38,6 +39,8 @@ type UserInfo struct {
 	Name  string `json:"name"`
 	Email string `json:"email"`
 }
+
+var d = data.Data{}
 
 func main() {
 
@@ -68,6 +71,8 @@ func main() {
 		SigningMethod: jwt.SigningMethodRS256,
 	})
 
+	d = data.Init("model.conf", "policy.csv")
+
 	r := mux.NewRouter()
 
 	r.Handle("/data", jwtMiddleware.Handler(GetDataHandler)).Methods("GET")
@@ -89,7 +94,7 @@ var GetDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 
 	userEmail, _ := getUserEmail(token)
 
-	filteredData := readData(userEmail)
+	filteredData := d.ReadData(userEmail)
 
 	payload, _ := json.Marshal(filteredData)
 
@@ -108,7 +113,7 @@ var PutDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 
 	userEmail, _ := getUserEmail(token)
 
-	filteredData := readData(userEmail)
+	filteredData := d.ReadData(userEmail)
 
 	payload, _ := json.Marshal(filteredData)
 

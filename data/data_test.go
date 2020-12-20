@@ -1,4 +1,4 @@
-package main
+package data
 
 import (
 	"strings"
@@ -8,13 +8,17 @@ import (
 const checkMark = "\u2713"
 const xMark = "\u2717"
 
+const alice = "alice@example.com"
+
 func TestReadData(t *testing.T) {
 
 	t.Log("Alice:")
 
-	data := readData("alice@example.com")
+	data := Init("../model.conf", "../policy.csv")
 
-	if len(data) == 2 {
+	dataItems := data.ReadData("alice@example.com")
+
+	if len(dataItems) == 2 {
 		t.Log("Should have access to two data items.", checkMark)
 	} else {
 		t.Fatal("Should have access to two data items.", xMark)
@@ -25,7 +29,9 @@ func TestNewData(t *testing.T) {
 
 	t.Log("Alice:")
 
-	err := newData("alice@example.com")
+	data := Init("../model.conf", "../policy.csv")
+
+	err := data.NewData(alice)
 
 	if err == nil {
 		t.Log("Should be able to create a new data item.", checkMark)
@@ -33,12 +39,12 @@ func TestNewData(t *testing.T) {
 		t.Fatal("Should be able to create a new data item.", xMark)
 	}
 
-	data := readData("alice@example.com")
+	dataItems := data.ReadData(alice)
 
-	if len(data) == 3 {
+	if len(dataItems) == 3 {
 		t.Log("Should have access to three data items.", checkMark)
 	} else {
-		t.Fatal("Should have access to three data items.", xMark)
+		t.Fatal("Should have access to three data items.", xMark, len(dataItems))
 	}
 
 }
@@ -47,9 +53,11 @@ func TestUpdateData(t *testing.T) {
 
 	t.Log("Alice:")
 
-	data := readData("alice@example.com")
+	data := Init("../model.conf", "../policy.csv")
 
-	for _, d := range data {
+	dataItems := data.ReadData("alice@example.com")
+
+	for _, d := range dataItems {
 		if d.Name == "data1" {
 			if d.Description == "Data 1" {
 				t.Log("Should be able to lookup the description for data1 ", checkMark)
@@ -59,7 +67,7 @@ func TestUpdateData(t *testing.T) {
 		}
 	}
 
-	err := updateData("alice@example.com", "data1", "Data 1 Updated")
+	err := data.UpdateData("alice@example.com", "data1", "Data 1 Updated")
 
 	if err == nil {
 		t.Log("Should be able to update the description for data1 ", checkMark)
@@ -67,9 +75,9 @@ func TestUpdateData(t *testing.T) {
 		t.Fatal("Should be able to update the description for data1.", xMark, err)
 	}
 
-	data = readData("alice@example.com")
+	dataItems = data.ReadData("alice@example.com")
 
-	for _, d := range data {
+	for _, d := range dataItems {
 		if d.Name == "data1" {
 			if d.Description == "Data 1 Updated" {
 				t.Log("Should be able to get the updated description for data1 ", checkMark)
@@ -85,9 +93,11 @@ func TestPermissions(t *testing.T) {
 
 	t.Log("Alice:")
 
-	data := readData("alice@example.com")
+	data := Init("../model.conf", "../policy.csv")
 
-	for _, d := range data {
+	dataItems := data.ReadData("alice@example.com")
+
+	for _, d := range dataItems {
 		if d.Name == "data1" {
 			if strings.Contains(d.Permissions, "read") {
 				t.Log("Should have read permissions for data1.", checkMark)
