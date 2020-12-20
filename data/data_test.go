@@ -16,12 +16,12 @@ func TestReadData(t *testing.T) {
 
 	data := Init("../model.conf", "../policy.csv")
 
-	dataItems := data.ReadData("alice@example.com")
+	dataItems := data.ReadData(alice)
 
 	if len(dataItems) == 2 {
 		t.Log("Should have access to two data items.", checkMark)
 	} else {
-		t.Fatal("Should have access to two data items.", xMark)
+		t.Fatal("Should have access to two data items.", xMark, len(dataItems))
 	}
 }
 
@@ -31,7 +31,7 @@ func TestNewData(t *testing.T) {
 
 	data := Init("../model.conf", "../policy.csv")
 
-	err := data.NewData(alice)
+	d, err := data.NewData(alice)
 
 	if err == nil {
 		t.Log("Should be able to create a new data item.", checkMark)
@@ -47,6 +47,7 @@ func TestNewData(t *testing.T) {
 		t.Fatal("Should have access to three data items.", xMark, len(dataItems))
 	}
 
+	data.DeleteData(alice, d.Id)
 }
 
 func TestUpdateData(t *testing.T) {
@@ -67,7 +68,7 @@ func TestUpdateData(t *testing.T) {
 		}
 	}
 
-	err := data.UpdateData("alice@example.com", "data1", "Data 1 Updated")
+	err := data.UpdateData("alice@example.com", 1, "Data 1 Updated")
 
 	if err == nil {
 		t.Log("Should be able to update the description for data1 ", checkMark)
@@ -123,4 +124,45 @@ func TestPermissions(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestDeleteData(t *testing.T) {
+
+	t.Log("Alice:")
+
+	data := Init("../model.conf", "../policy.csv")
+
+	d1, err := data.NewData(alice)
+	if err != nil {
+		t.Fatal("Should be able add new data.", xMark, err)
+	}
+	d2, err := data.NewData(alice)
+	if err != nil {
+		t.Fatal("Should be able to add new data.", xMark, err)
+	}
+
+	items := data.ReadData(alice)
+
+	if len(items) == 4 {
+		t.Log("Should have access to four data items.", checkMark)
+	} else {
+		t.Fatal("Should have access to four data items.", xMark, len(items))
+	}
+
+	err = data.DeleteData(alice, d1.Id)
+	if err == nil {
+		t.Log("Should be able to delete a data item.", checkMark)
+	} else {
+		t.Fatal("Should be able to delete a data item.", xMark)
+	}
+
+	items = data.ReadData(alice)
+
+	for _, di := range items {
+		if di.Id == d1.Id {
+			t.Fatal("Should not find deleted id in list of data items.", xMark)
+		}
+	}
+
+	data.DeleteData(alice, d2.Id)
 }

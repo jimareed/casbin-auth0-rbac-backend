@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/auth0/go-jwt-middleware"
@@ -76,11 +77,13 @@ func main() {
 	r := mux.NewRouter()
 
 	r.Handle("/data", jwtMiddleware.Handler(GetDataHandler)).Methods("GET")
-	r.Handle("/data/{name}", jwtMiddleware.Handler(PutDataHandler)).Methods("PUT")
+	r.Handle("/data", jwtMiddleware.Handler(AddDataHandler)).Methods("POST")
+	r.Handle("/data/{id}", jwtMiddleware.Handler(UpdateDataHandler)).Methods("PUT")
+	r.Handle("/data/{id}", jwtMiddleware.Handler(DeleteDataHandler)).Methods("DELETE")
 
 	// For dev only - Set up CORS so React client can consume our API
 	corsWrapper := cors.New(cors.Options{
-		AllowedMethods: []string{"GET", "POST", "PUT"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders: []string{"Content-Type", "Origin", "Accept", "*"},
 	})
 
@@ -102,23 +105,64 @@ var GetDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 	w.Write([]byte(payload))
 })
 
-var PutDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+var UpdateDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	name := vars["name"]
+	id := vars["id"]
 
 	authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
 	token := authHeaderParts[1]
 
-	log.Printf("put name=%s", name)
+	userId, _ := getUserEmail(token)
 
-	userEmail, _ := getUserEmail(token)
+	i, _ := strconv.Atoi(id)
 
-	filteredData := d.ReadData(userEmail)
+	log.Printf("put user=%s id=%d", userId, i)
+
+	filteredData := d.ReadData(userId)
 
 	payload, _ := json.Marshal(filteredData)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(payload))
+})
+
+var DeleteDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
+	token := authHeaderParts[1]
+
+	userId, _ := getUserEmail(token)
+
+	i, _ := strconv.Atoi(id)
+
+	_ = d.DeleteData(userId, i)
+
+	filteredData := d.ReadData(userId)
+
+	payload, _ := json.Marshal(filteredData)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(payload))
+})
+
+var AddDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
+	token := authHeaderParts[1]
+
+	userId, _ := getUserEmail(token)
+
+	s, err := d.NewData(userId)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err == nil {
+		payload, _ := json.Marshal(s)
+		w.Write([]byte(payload))
+	} else {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+	}
 })
 
 func getUserEmail(token string) (string, error) {

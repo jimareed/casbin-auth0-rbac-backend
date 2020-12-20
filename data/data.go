@@ -19,7 +19,6 @@ type DataItem struct {
 /* Data type */
 type Data struct {
 	enforcer *casbin.Enforcer
-	data     []DataItem
 }
 
 var nextId = 4
@@ -40,7 +39,6 @@ func Init(modelFile string, policyFile string) Data {
 	}
 
 	d.enforcer = e
-	d.data = dataItems
 
 	return d
 }
@@ -79,7 +77,7 @@ func (data Data) ReadData(userEmail string) []DataItem {
 	return filteredData
 }
 
-func (data Data) NewData(userId string) error {
+func (data Data) NewData(userId string) (DataItem, error) {
 
 	newData := DataItem{}
 
@@ -90,20 +88,22 @@ func (data Data) NewData(userId string) error {
 	_, err := data.enforcer.AddPolicy(userId, newData.Name, "write:data")
 	if err != nil {
 		log.Fatalf("error adding policy: %v", err)
-		return err
+		return newData, err
 	}
 
 	dataItems = append(dataItems, newData)
 	nextId++
 
-	return nil
+	return newData, nil
 }
 
-func (data Data) UpdateData(userEmail string, name string, description string) error {
+func (data Data) UpdateData(userId string, id int, description string) error {
 	index := 0
 
+	name := fmt.Sprintf("data%d", id)
+
 	for _, d := range dataItems {
-		result, err := data.enforcer.Enforce(userEmail, d.Name, "write:data")
+		result, err := data.enforcer.Enforce(userId, d.Name, "write:data")
 		if err != nil {
 			log.Fatalf("Enforce error: %v", err)
 			return err
@@ -115,6 +115,29 @@ func (data Data) UpdateData(userEmail string, name string, description string) e
 			}
 		}
 		index++
+	}
+
+	return errors.New("data not found")
+}
+
+func (data Data) DeleteData(userId string, id int) error {
+
+	name := fmt.Sprintf("data%d", id)
+
+	_, err := data.enforcer.RemovePolicy(userId, name, "write:data")
+	if err != nil {
+		log.Fatalf("error removing policy: %v", err)
+		return err
+	}
+
+	for i, d := range dataItems {
+		if d.Id == id {
+			if i != len(dataItems)-1 {
+				dataItems[i] = dataItems[len(dataItems)-1]
+			}
+			dataItems = dataItems[:len(dataItems)-1]
+			return nil
+		}
 	}
 
 	return errors.New("data not found")
