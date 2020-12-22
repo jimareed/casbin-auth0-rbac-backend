@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -39,6 +40,10 @@ type UserInfo struct {
 	Sub   string `json:"sub"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
+}
+
+type UpdateData struct {
+	Description string `json:"description"`
 }
 
 var d = data.Data{}
@@ -87,6 +92,8 @@ func main() {
 		AllowedHeaders: []string{"Content-Type", "Origin", "Accept", "*"},
 	})
 
+	log.Printf("server started\n")
+
 	http.ListenAndServe(":8080", corsWrapper.Handler(r))
 }
 
@@ -95,9 +102,11 @@ var GetDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 	authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
 	token := authHeaderParts[1]
 
-	userEmail, _ := getUserEmail(token)
+	userId, _ := getUserEmail(token)
 
-	filteredData := d.ReadData(userEmail)
+	log.Printf("get data for user %s", userId)
+
+	filteredData := d.ReadData(userId)
 
 	payload, _ := json.Marshal(filteredData)
 
@@ -116,7 +125,12 @@ var UpdateDataHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Req
 
 	i, _ := strconv.Atoi(id)
 
-	log.Printf("put user=%s id=%d", userId, i)
+	reqBody, _ := ioutil.ReadAll(r.Body)
+	var updateData UpdateData
+
+	json.Unmarshal(reqBody, &updateData)
+
+	d.UpdateData(userId, i, updateData.Description)
 
 	filteredData := d.ReadData(userId)
 
